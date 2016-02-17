@@ -1,5 +1,5 @@
 from Twidder import app
-from flask import request
+from flask import request, render_template
 import database_helper
 import random
 import json
@@ -15,8 +15,8 @@ def teardown_request(exception):
 
 
 @app.route('/')
-def hello_world():
-    return "Hello World !"
+def start():
+    return render_template('client.html')
 
 
 @app.route('/signup', methods=['POST'])
