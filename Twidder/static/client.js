@@ -26,31 +26,50 @@ window.onload = function() {
 /********************** Login, Sign up, Log out **********************/
 
 logIn = function() {
+
 	var username = document.getElementById("emailLog").value;
 	var password = document.getElementById("passwordLog").value;
-	if (password.length >= sizeMinPwd) {
-		var servStubLog = serverstub.signIn(username, password);
-		if (servStubLog.success == true) {
-			localStorage.setItem("token", servStubLog.data);
-			location.reload();
-		} else {
-			displayMsg(servStubLog.message, false, "welcomeview");
-		}
-	} else {
-		displayMsg("Username or password is incorrect",false,"welcomeview");
+	var params = "emailLog="+username+"&passwordLog="+password;
+
+	if (username != "" && password != "") {
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function () {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var rep = JSON.parse(xmlhttp.responseText);
+
+				if (rep.success == true) {
+					localStorage.setItem("token", rep.token);
+					location.reload();
+				} else {
+					displayMsg(rep.message, false, "welcomeview");
+				}
+			}
+		};
+		xmlhttp.open("POST", "/signin", true);
+		xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xmlhttp.send(params);
 	}
 };
 
 logOut = function() {
 	var token = localStorage.getItem("token");
-
+	var params = "token="+token;
 	if (token != null) {
-		var servStubLogOut = serverstub.signOut(token);
-		localStorage.removeItem("token");
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function () {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var rep = JSON.parse(xmlhttp.responseText);
+				if (rep.success == true) {
+					localStorage.removeItem("token");
+					//to display the welcome page after the user signs out
+					location.reload();
+				}
+			}
+		};
+		xmlhttp.open("POST", "/signout", true);
+		xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xmlhttp.send(params);
 	}
-
-	//to display the welcome page after the user signs out
-	location.reload();
 };
 
 signUp = function() {
@@ -67,9 +86,23 @@ signUp = function() {
 		'country': document.getElementById("country").value
 	};
 
+	var params = "emailSign="+newUser.email+"&passwordSign="+newUser.password+
+			"&firstName="+newUser.firstname+"&familyName="+newUser.familyname+
+			"&gender="+newUser.gender+"&city="+newUser.city+"&country="+newUser.country;
+
 	if (!(newUser.password.length < sizeMinPwd) && (newUser.password == document.getElementById("repeatPassword").value)) {
-		var servStubSign = serverstub.signUp(newUser);
-		displayMsgSign(servStubSign.message,true);
+		//var servStubSign = serverstub.signUp(newUser);
+		//displayMsgSign(servStubSign.message,true);
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var rep = JSON.parse(xmlhttp.responseText);
+				displayMsgSign(rep.message,true);
+			}
+		};
+		xmlhttp.open("POST","/signup",true);
+		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		xmlhttp.send(params);
 	} else if (newUser.password != document.getElementById("repeatPassword").value) {
         displayMsgSign("Error: both passwords must be identical", false);
 	} else if (newUser.password.length < sizeMinPwd) {
@@ -154,14 +187,23 @@ changePwd = function() {
 /********************** Displays all the info about the user who is logged in **********************/
 displayInfo = function() {
 	var token = localStorage.getItem("token");
-	var servStubInfo = serverstub.getUserDataByToken(token);
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.open("GET", "/getuserdatabytoken/" + token, true);
+	xmlhttp.send();
 
-	document.getElementById("mail-span").innerHTML = servStubInfo.data.email;
-	document.getElementById("firstname-span").innerHTML = servStubInfo.data.firstname;
-	document.getElementById("familyname-span").innerHTML = servStubInfo.data.familyname;
-	document.getElementById("gender-span").innerHTML = servStubInfo.data.gender;	
-	document.getElementById("city-span").innerHTML = servStubInfo.data.city;
-	document.getElementById("country-span").innerHTML = servStubInfo.data.country;
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var rep = JSON.parse(xmlhttp.responseText);
+			if (rep.success == true) {
+				document.getElementById("mail-span").innerHTML = rep.data[0];
+				document.getElementById("firstname-span").innerHTML = rep.data[1];
+				document.getElementById("familyname-span").innerHTML = rep.data[2];
+				document.getElementById("gender-span").innerHTML = rep.data[3];
+				document.getElementById("city-span").innerHTML = rep.data[4];
+				document.getElementById("country-span").innerHTML = rep.data[5];
+			}
+		}
+	};
 };
 
 /********************** Stores the "msg" send by "from" in the array **********************/

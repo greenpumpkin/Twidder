@@ -54,7 +54,7 @@ def sign_in():
         database_helper.add_logged_in(token, email)
         return json.dumps({'success': True, 'message': "Login successful!", 'token': token})
     else:
-        return json.dumps({'success': False, 'message': '''Wrong email or password'''})
+        return json.dumps({'success': False, 'message': "Wrong email or password"})
 
 
 # Creates a random token
