@@ -20,7 +20,7 @@ window.onload = function() {
 	if (localStorage.getItem("token") != null) {
 		displayInfo();
 		keepMsg("mess");
-	}	
+	}
 };
 
 /********************** Login, Sign up, Log out **********************/
@@ -91,8 +91,6 @@ signUp = function() {
 			"&gender="+newUser.gender+"&city="+newUser.city+"&country="+newUser.country;
 
 	if (!(newUser.password.length < sizeMinPwd) && (newUser.password == document.getElementById("repeatPassword").value)) {
-		//var servStubSign = serverstub.signUp(newUser);
-		//displayMsgSign(servStubSign.message,true);
 		var xmlhttp = new XMLHttpRequest();
 		xmlhttp.onreadystatechange = function() {
 			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
@@ -170,15 +168,23 @@ changePwd = function() {
 	var token = localStorage.getItem("token");
 	var oldPassword = document.getElementById("oldPwd").value;
 	var newPassword = document.getElementById("chgPwd").value;
+	var params = "token="+token+"&pwd="+oldPassword+"&chgPwd="+newPassword;
 
 	if (newPassword.length >= sizeMinPwd) {
-		var servStubChg = serverstub.changePassword(token, oldPassword, newPassword);
-
-        if (document.getElementById("chgPwd").value != document.getElementById("chgRepPwd").value) {
-            displayMsg("Error: both passwords must be identical", false, "profileview");
-        } else {
-            displayMsg(servStubChg.message, true, "profileview");
-        }
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var rep = JSON.parse(xmlhttp.responseText);
+				if (rep.success == true) {
+					displayMsg(rep.message,true,"profileview");
+				} else {
+					displayMsg(rep.message,false,"profileview");
+				}
+			}
+		};
+		xmlhttp.open("POST","/changepassword",true);
+		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		xmlhttp.send(params);
 	} else {
 		displayMsg("Error: password must be at least 6 characters long", false, "profileview");
 	}
@@ -188,7 +194,7 @@ changePwd = function() {
 displayInfo = function() {
 	var token = localStorage.getItem("token");
 	var xmlhttp = new XMLHttpRequest();
-	xmlhttp.open("GET", "/getuserdatabytoken/" + token, true);
+	xmlhttp.open("GET", "/getuserdatabytoken/"+token, true);
 	xmlhttp.send();
 
 	xmlhttp.onreadystatechange = function () {
@@ -206,22 +212,34 @@ displayInfo = function() {
 	};
 };
 
-/********************** Stores the "msg" send by "from" in the array **********************/
-send = function(msg,from,to) {
-    
-    var token = localStorage.getItem("token");
-    var servStubPost = serverstub.postMessage(token,msg,from);
-	if(servStubPost.success == true) {
-		document.getElementById(to).value = "";
-		displayMsg(servStubPost.message, true, "profileview");
-		if (to == "mess") {
-        	keepMsg("mess");
-    	} else if (to == "messUser") {
-    		keepMsg("messUser");
-    	}
-	} else {
-        displayMsg(servStubPost.message, false, "profileview");
-    }
+/********************** Stores the "msg" in the database **********************/
+send = function(msg,mail,to) {
+
+	var token = localStorage.getItem("token");
+
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var rep = JSON.parse(xmlhttp.responseText);
+			if (rep.success == true) {
+				document.getElementById(to).value = "";
+				displayMsg(rep.message, true, "profileview");
+				if (to == "mess") {
+					email = document.getElementById("mail-span").value;
+					keepMsg("mess");
+				} else if (to == "messUser") {
+					email = document.getElementById("mail-span-o").value;
+					keepMsg("messUser");
+				}
+			} else {
+				displayMsg(rep.message, false, "profileview");
+			}
+		}
+	};
+	var params = "message="+msg+"&token="+token+"&email="+mail;
+	xmlhttp.open("POST","/postmessage",true);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	xmlhttp.send(params);
 };
 
 /********************** Enables a user to post a message to a wall **********************/
@@ -229,97 +247,119 @@ msgOnWall = function(to) {
 
 	var token = localStorage.getItem("token");
 	var msg = document.getElementById(to).value;
-	var email = document.getElementById("mail-span-o").innerHTML;
-	var servStubData;
+	var email;
 
     if ((msg.length <= maxSizeMsg) && (msg.length > 0)) {
-        
-        if (to == "mess") {
-        	servStubData = serverstub.getUserDataByToken(token);
-        } else if (to == "messUser") {
-        	servStubData = serverstub.getUserDataByEmail(token, email);
-        }
 
-    	if (servStubData.success == true) {
-            send(msg, servStubData.data.email,to);
-        	displayMsg(servStubData.message, true, "profileview");
-        } else {
-            displayMsg(servStubData.message, false, "profileview");
-        }
-    } else {
-        displayMsg("Message too short or too long", false, "profileview");
-    }
-};
+		if (to == "mess") {
+			email = document.getElementById("mail-span").innerHTML;
+		} else if (to == "messUser") {
+			email = document.getElementById("mail-span-o").innerHTML;
+		}
+
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.open("GET", "/getuserdatabyemail/" + token + "/" + email, true);
+		xmlhttp.send();
+
+		xmlhttp.onreadystatechange = function () {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var rep = JSON.parse(xmlhttp.responseText);
+				if (rep.success == true) {
+					send(msg, email, to);
+				} else {
+					displayMsg(rep.message, false, "profileview");
+				}
+			}
+		};
+	} else {
+			displayMsg("Message too short or too long", false, "profileview");
+		}
+	};
 
 /********************** Updates the wall to
               make sure that the messages will appear within it **********************/
 keepMsg = function(to) {
 
-	var messageArea = document.getElementById(to);
 	var token = localStorage.getItem("token");
-	var email = document.getElementById("mail-span-o").innerHTML;
-	var txt;
+	var email;
+	var wall;
 
 	if (to == "mess") {
-		txt = serverstub.getUserMessagesByToken(token);
+		email = document.getElementById("mail-span").innerHTML;
+		wall = document.getElementById("wall");
 	} else if (to == "messUser") {
-		txt = serverstub.getUserMessagesByEmail(token,email);
+		email = document.getElementById("mail-span-o").innerHTML;
+		wall = document.getElementById("wallUser");
 	}
 
-	var mess = txt.data;
-	
-	if (messageArea && txt) {
-		/* if the textarea isn't empty and the user has posted messages */
-        var wall;
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET","/getusermessagesbyemail/"+token+"/"+email,true);
+    xmlhttp.send();
 
-        if (to == "mess") {
-        	wall = document.getElementById("wall");
-        } else if (to == "messUser") {
-        	wall = document.getElementById("wallUser");
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            var rep = JSON.parse(xmlhttp.responseText);
+			if (rep.success == true) {
+				//Removing all the messages ...
+				while (wall.firstChild) {
+					wall.removeChild(wall.firstChild);
+				}
+				//...and rewriting them all	to be sure they're all in the wall
+				for	(j = 0; j < rep.data.length; j++) {
+					var para = document.createElement("p");
+					var msg = document.createTextNode("'"+rep.data[j]+"'");
+					para.appendChild(msg);
+					wall.appendChild(para);
+				}
+			} else {
+				displayMsg(rep.message, false, "profileview");
+			}
         }
-		//Removing all the messages ...
-        while (wall.firstChild) {
-    			wall.removeChild(wall.firstChild);
-		}
-        //...and rewriting them all	to be sure they're all in the wall
-        for	(j = 0; j < mess.length; j++) {
-        	var para = document.createElement("p");
-	        var msg = document.createTextNode("'"+mess[j].content+"' written by "+mess[j].writer);
-	        para.appendChild(msg);
-	        wall.appendChild(para);
-        }
-
-    } else {
-        displayMsg("Error", false, "profileview");
-    }
+    };
 };
 
 /********************** Builds the info of an other user **********************/
 displayInfoOther = function(email) {
 	var token = localStorage.getItem("token");
-	var servStubInfo = serverstub.getUserDataByEmail(token,email);
-
-	document.getElementById("mail-span-o").innerHTML = servStubInfo.data.email;
-	document.getElementById("firstname-span-o").innerHTML = servStubInfo.data.firstname;
-	document.getElementById("familyname-span-o").innerHTML = servStubInfo.data.familyname;
-	document.getElementById("gender-span-o").innerHTML = servStubInfo.data.gender;	
-	document.getElementById("city-span-o").innerHTML = servStubInfo.data.city;
-	document.getElementById("country-span-o").innerHTML = servStubInfo.data.country;
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.open("GET", "/getuserdatabyemail/"+token+"/"+email, true);
+	xmlhttp.send();
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var rep = JSON.parse(xmlhttp.responseText);
+			if (rep.success == true) {
+				document.getElementById("mail-span-o").innerHTML = rep.data[0];
+				document.getElementById("firstname-span-o").innerHTML = rep.data[1];
+				document.getElementById("familyname-span-o").innerHTML = rep.data[2];
+				document.getElementById("gender-span-o").innerHTML = rep.data[3];
+				document.getElementById("city-span-o").innerHTML = rep.data[4];
+				document.getElementById("country-span-o").innerHTML = rep.data[5];
+			}
+		}
+	};
 };
 
 /********************** Enables to search for another user's wall **********************/
 searchSomeone = function() { 
 	var token = localStorage.getItem("token");
 	var email = document.getElementById("mailSearch").value;
-	var servStubData = serverstub.getUserMessagesByEmail(token, email);
-	if (servStubData.success == true) {
-		displayInfoOther(email);
-		loadUserPage();
-	} else {
-		displayMsg(servStubData.message, false, "profileview");
-		document.getElementById("searchForm").style.display = "block";
-		document.getElementById("userPage").style.display = "none";
-	}
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.open("GET", "/getusermessagesbyemail/"+token+"/"+email, true);
+	xmlhttp.send();
+
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var rep = JSON.parse(xmlhttp.responseText);
+			if (rep.success == true) {
+				displayInfoOther(email);
+				loadUserPage();
+			} else {
+				displayMsg(rep.message, false, "profileview");
+				document.getElementById("searchForm").style.display = "block";
+				document.getElementById("userPage").style.display = "none";
+			}
+		}
+	};
 };
 
 /********************** Enables to display all the info of another user **********************/
