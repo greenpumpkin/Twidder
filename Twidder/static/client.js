@@ -281,41 +281,44 @@ msgOnWall = function(to) {
 keepMsg = function(to) {
 
 	var token = localStorage.getItem("token");
-	var email;
 	var wall;
 
-	if (to == "mess") {
-		email = document.getElementById("mail-span").innerHTML;
-		wall = document.getElementById("wall");
-	} else if (to == "messUser") {
-		email = document.getElementById("mail-span-o").innerHTML;
-		wall = document.getElementById("wallUser");
-	}
+	if (token != "") {
+		var xmlhttp = new XMLHttpRequest();
+		if (to == "mess") {
+			wall = document.getElementById("wall");
+			xmlhttp.open("GET", "/getusermessagesbytoken/" + token, true);
+		} else if (to == "messUser") {
+			wall = document.getElementById("wallUser")
+			var email = document.getElementById("mailSearch").value;
+			xmlhttp.open("GET", "/getusermessagesbyemail/" + token + "/" + email, true);
+		}
 
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("GET","/getusermessagesbyemail/"+token+"/"+email,true);
-    xmlhttp.send();
+		xmlhttp.send();
 
-    xmlhttp.onreadystatechange = function() {
-        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            var rep = JSON.parse(xmlhttp.responseText);
-			if (rep.success == true) {
-				//Removing all the messages ...
-				while (wall.firstChild) {
-					wall.removeChild(wall.firstChild);
+		xmlhttp.onreadystatechange = function () {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var rep = JSON.parse(xmlhttp.responseText);
+				if (rep.success == true) {
+					//Removing all the messages ...
+					while (wall.firstChild) {
+						wall.removeChild(wall.firstChild);
+					}
+					//...and rewriting them all	to be sure they're all in the wall
+					for (j = 0; j < rep.data.length; j++) {
+						var para = document.createElement("p");
+						var msg = document.createTextNode("'" + rep.data[j] + "'");
+						para.appendChild(msg);
+						wall.appendChild(para);
+					}
+				} else {
+					displayMsg(rep.message, false, "profileview");
 				}
-				//...and rewriting them all	to be sure they're all in the wall
-				for	(j = 0; j < rep.data.length; j++) {
-					var para = document.createElement("p");
-					var msg = document.createTextNode("'"+rep.data[j]+"'");
-					para.appendChild(msg);
-					wall.appendChild(para);
-				}
-			} else {
-				displayMsg(rep.message, false, "profileview");
 			}
-        }
-    };
+		};
+	} else {
+		displayMsg("You are not logged in.", false, "profileview");
+	}
 };
 
 /********************** Builds the info of an other user **********************/
