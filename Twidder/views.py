@@ -127,15 +127,15 @@ def post_message():
     message = request.form['message']
     token = request.form['token']
     email = request.form['email']
+    sender = database_helper.get_email(token)[0]
     if database_helper.get_logged_in(token):
         if database_helper.in_users(email):
-            database_helper.post_message(token, message, email)
+            database_helper.post_message(message, token, sender, email)
             return json.dumps({"success": True, "message": "Message posted."})
         else:
             return json.dumps({"success": False, "message": "No such user."})
     else:
         return json.dumps({"success": False, "message": "You are not signed in."})
-
 
 # Retrieves the stored messages for the user whom the passed token is issued for.
 # The currently signed-in user case use this method to retrieve all its own messages from the server.
@@ -144,7 +144,7 @@ def get_user_messages_by_token(token):
     if database_helper.get_logged_in(token):
         data = database_helper.get_user_messages_by_token_db(token)
         if data is not None:
-            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data})
+            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data })
         return json.dumps({"success": False, "message": "No such user."})
     return json.dumps({"success": False, "message": "You are not signed in."})
 
@@ -154,7 +154,7 @@ def get_user_messages_by_email(token,email):
     if database_helper.get_logged_in(token):
         if (database_helper.in_users(email)):
             data = database_helper.get_user_messages_by_email_db(email)
-            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data})
+            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data })
         return json.dumps({"success": False, "message": "No such user."})
     else:
         return json.dumps({"success": False, "message": "You are not signed in."})

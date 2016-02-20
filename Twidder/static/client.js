@@ -31,7 +31,7 @@ logIn = function() {
 	var password = document.getElementById("passwordLog").value;
 	var params = "emailLog="+username+"&passwordLog="+password;
 
-	if (username != "" && password != "") {
+	if (username != null && password != null) {
 		var xmlhttp = new XMLHttpRequest();
 		xmlhttp.onreadystatechange = function () {
 			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
@@ -219,27 +219,29 @@ send = function(msg,mail,to) {
 
 	var xmlhttp = new XMLHttpRequest();
 	xmlhttp.onreadystatechange = function () {
-		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 			var rep = JSON.parse(xmlhttp.responseText);
-			if (rep.success == true) {
+            if (rep.success == true) {
 				document.getElementById(to).value = "";
 				displayMsg(rep.message, true, "profileview");
 				if (to == "mess") {
-					email = document.getElementById("mail-span").value;
 					keepMsg("mess");
+
 				} else if (to == "messUser") {
-					email = document.getElementById("mail-span-o").value;
 					keepMsg("messUser");
 				}
-			} else {
+            }
+            else {
 				displayMsg(rep.message, false, "profileview");
 			}
-		}
+        }
 	};
+
 	var params = "message="+msg+"&token="+token+"&email="+mail;
 	xmlhttp.open("POST","/postmessage",true);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send(params);
+
 };
 
 /********************** Enables a user to post a message to a wall **********************/
@@ -283,7 +285,7 @@ keepMsg = function(to) {
 	var token = localStorage.getItem("token");
 	var wall;
 
-	if (token != "") {
+	if (token != null) {
 		var xmlhttp = new XMLHttpRequest();
 		if (to == "mess") {
 			wall = document.getElementById("wall");
@@ -307,7 +309,7 @@ keepMsg = function(to) {
 					//...and rewriting them all	to be sure they're all in the wall
 					for (j = 0; j < rep.data.length; j++) {
 						var para = document.createElement("p");
-						var msg = document.createTextNode("'" + rep.data[j] + "'");
+						var msg = document.createTextNode("'"+rep.data[j][0]+"' written by : "+rep.data[j][1]);
 						para.appendChild(msg);
 						wall.appendChild(para);
 					}

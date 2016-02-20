@@ -171,17 +171,16 @@ def get_user_data_by_email(email):
 
 
 # Post a message which is stored on the database
-def post_message(token, message, email):
+def post_message(message, token, sender, email):
     db = get_db()
     cursor = db.cursor()
-    msg = (message, token, email)
+    msg = (message, token, sender, email)
     try:
-        request = cursor.execute('INSERT INTO messages VALUES (?,?,?)', msg)
+        request = cursor.execute('INSERT INTO messages VALUES (?,?,?,?)', msg)
         db.commit()
         return request.fetchone()
     except sqlite3.Error:
         return False
-
 
 # Retrieves the messages for the user whom the passed token is issued for in the database
 def get_user_messages_by_token_db(token):
@@ -189,18 +188,17 @@ def get_user_messages_by_token_db(token):
     cursor = db.cursor()
     receiver = (get_email(token)[0],)
     try:
-        request = cursor.execute('SELECT message FROM messages WHERE receiver=?', receiver)
+        request = cursor.execute('SELECT message,sender_email FROM messages WHERE receiver=?', receiver)
         return request.fetchall()
     except sqlite3.Error:
         return False
-
 
 # Retrieves the messages for the user whom the passed email is specified in the database
 def get_user_messages_by_email_db(email):
     db = get_db()
     cursor = db.cursor()
     try:
-        request = cursor.execute('SELECT message FROM messages WHERE receiver=?', (email,))
+        request = cursor.execute('SELECT message,sender_email FROM messages WHERE receiver=?', (email,))
         return request.fetchall()
     except sqlite3.Error:
         return False
