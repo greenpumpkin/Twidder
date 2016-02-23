@@ -168,9 +168,10 @@ changePwd = function() {
 	var token = localStorage.getItem("token");
 	var oldPassword = document.getElementById("oldPwd").value;
 	var newPassword = document.getElementById("chgPwd").value;
+    var repPassword = document.getElementById("chgRepPwd").value;
 	var params = "token="+token+"&pwd="+oldPassword+"&chgPwd="+newPassword;
 
-	if (newPassword.length >= sizeMinPwd) {
+	if (newPassword.length >= sizeMinPwd && newPassword==repPassword) {
 		var xmlhttp = new XMLHttpRequest();
 		xmlhttp.onreadystatechange = function() {
 			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
@@ -186,7 +187,7 @@ changePwd = function() {
 		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 		xmlhttp.send(params);
 	} else {
-		displayMsg("Error: password must be at least 6 characters long", false, "profileview");
+		displayMsg("Error: invalid inputs", false, "profileview");
 	}
 };
 

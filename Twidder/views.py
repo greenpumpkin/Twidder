@@ -1,5 +1,6 @@
 from Twidder import app
 from flask import request, render_template
+import re
 import database_helper
 import random
 import json
@@ -30,8 +31,8 @@ def sign_up():
     city = request.form['city']
     country = request.form['country']
 
-    if (database_helper.check_email(email) == True) and len(password) >= 6 \
-            and (database_helper.check_gender(gender))\
+    if (check_email(email) == True) and len(password) >= 6 \
+            and (check_gender(gender))\
             and len(firstname) > 0 and len(familyname) > 0\
             and len(city) > 0 and len(country) >0:
         signUp = database_helper.insert_user(email, password, firstname, familyname, gender, city, country)
@@ -64,6 +65,16 @@ def create_token():
     for i in range(0, 36):
         token += ab[random.randint(0, len(ab) - 1)]
     return token
+
+#Checks if an email address is valid
+def check_email(email):
+    if re.match(r"[^@]+@[^@]+\.[^@]+",email):
+        return True
+    return False
+
+#Checks if the gender is valid
+def check_gender(gender):
+    return gender == 'male' or gender == 'female'
 
 
 # Signs out a user from the system
