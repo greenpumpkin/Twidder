@@ -4,6 +4,11 @@ import re
 import database_helper
 import random
 import json
+from gevent.pywsgi import WSGIServer
+from geventwebsocket import WebSocketServer, WebSocketError
+from geventwebsocket.handler import WebSocketHandler
+
+sockets = {}
 
 @app.before_request
 def before_request():
@@ -19,6 +24,18 @@ def teardown_request(exception):
 def start():
     return render_template('client.html')
 
+@app.route('/socketconnect')
+def connect_socket():
+    if request.environ.get("wsgi.websocket"):
+        websock=request.environ["wsgi.websocket"]
+        while True:
+            try:
+                mail_user= websock.receive()
+                if mail_user in sockets:
+                    sockets[mail_user].send("signout")
+                sockets[mail_user] = websock
+            except WebSocketError as err:
+                print(str(err))
 
 @app.route('/signup', methods=['POST'])
 def sign_up():
@@ -53,6 +70,7 @@ def sign_in():
     if signin:
         token = create_token()
         database_helper.add_logged_in(token, email)
+        sockets[-1] = email
         return json.dumps({'success': True, 'message': "Login successful!", 'token': token})
     else:
         return json.dumps({'success': False, 'message': "Wrong email or password"})

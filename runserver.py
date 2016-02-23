@@ -1,7 +1,8 @@
-from gevent.wsgi import WSGIServer
-from Twidder import app, database_helper
+from gevent import pywsgi
+from geventwebsocket.handler import WebSocketHandler
+from Twidder import app
 
 app.run(debug=True)
-http_server = WSGIServer(('', 5000), app)
-http_server.serve_forever()
+server = pywsgi.WSGIServer(("", 5000), app, handler_class=WebSocketHandler)
+server.serve_forever()
 #database_helper.init_db(app)
