@@ -23,29 +23,27 @@ window.onload = function() {
 	}
 };
 
-connectSocket = function(mail) {
+var ws = new WebSocket("wss://localhost:5000/socketconnect");
 
-    var websock = new WebSocket("ws://localhost:5000/socketconnect");
+ws.onopen = function() {
+    ws.send(JSON.stringify({action: "message", message: "CONNECTED"}));
+    console.log("CONNECTION TO SERVER : OK");
+};
 
-    websock.onopen = function() {
-      websock.send(mail);
-    };
+ws.onmessage = function(event) {
+    var data = JSON.parse(event.data);
+    console.log(data);
 
-    websock.onmessage = function(rep) {
-      console.log(rep.data);
-        if (rep.data == "signout") {
-            logOut();
-        }
-    };
-
-    websock.onclose = function() {
-      console.log("WEBSOCKET IS  CLOSED");
-    };
-
-    websock.onerror = function() {
-        console.log("ERROR DETECTED");
+    if (data["action"] == "signout") {
+        delete sessionStorage.token;
+        loadView();
     }
 };
+
+ws.onclose = function() {
+    console.log("CONNECTION TO SERVER : FINISHED.");
+};
+
 /********************** Login, Sign up, Log out **********************/
 
 logIn = function() {
@@ -61,7 +59,6 @@ logIn = function() {
 				var rep = JSON.parse(xmlhttp.responseText);
 
 				if (rep.success == true) {
-                    connectSocket(username);
 					localStorage.setItem("token", rep.token);
 					location.reload();
 				} else {

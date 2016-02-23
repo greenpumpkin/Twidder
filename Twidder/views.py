@@ -4,9 +4,7 @@ import re
 import database_helper
 import random
 import json
-from gevent.pywsgi import WSGIServer
 from geventwebsocket import WebSocketServer, WebSocketError
-from geventwebsocket.handler import WebSocketHandler
 
 sockets = {}
 
@@ -27,15 +25,22 @@ def start():
 @app.route('/socketconnect')
 def connect_socket():
     if request.environ.get("wsgi.websocket"):
-        websock=request.environ["wsgi.websocket"]
+        ws = request.environ["wsgi.websocket"]
+
         while True:
-            try:
-                mail_user= websock.receive()
-                if mail_user in sockets:
-                    sockets[mail_user].send("signout")
-                sockets[mail_user] = websock
-            except WebSocketError as err:
-                print(str(err))
+            data = json.loads(ws.receive())
+
+            if (data["action"] == "signin"):
+                email = database_helper.get_email_by_token(data["token"])
+                if (email is not None):
+                    if email in sockets:
+                        socket = sockets[email]
+                        try:
+                            socket.send(json.dumps({"action": "signout"}))
+                        except WebSocketError as err:
+                            print(str(err))
+                    sockets[email] = ws
+    return
 
 @app.route('/signup', methods=['POST'])
 def sign_up():
