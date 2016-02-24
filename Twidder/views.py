@@ -26,30 +26,31 @@ def start():
 
 @app.route('/socketconnect')
 def connect_socket():
-    print "- SOMEONE JUST TRIED TO CONNECT"
+    #print "- SOMEONE JUST TRIED TO CONNECT"
     if request.environ.get('wsgi.websocket'):
         ws = request.environ['wsgi.websocket']
         rcv = ws.receive()
         data = json.loads(rcv)
         email = data['email']
-        print "- DATA IS %s" % data
+        #print "- DATA IS %s" % data
         if not database_helper.get_logged_in(data['token']):
             ws.send(json.dumps({"success": False, "message": "Token not in the database !"}))
 
         try:
             #If the user's email is in the sockets dict already
             if email in sockets:
-                print email + " has an active socket already"
+                print str(email) + " has an active socket already"
 
             #We save the active websocket for the logged in user
             print "Saving the socket for the user : " + str(email)
-            sockets[email] = ws
+            sockets[str(email)] = ws
+            print(sockets)
 
             # We listen on the socket and keep it active
             while True:
                 rcv = ws.receive()
                 if rcv == None:
-                    del sockets[email]
+                    del sockets[str(email)]
                     ws.close()
                     print "Socket closed for the user : " + str(email)
                     return ""
@@ -57,7 +58,7 @@ def connect_socket():
         except WebSocketError as err:
             repr(err)
             print("WebSocketError !")
-            del sockets[email]
+            del sockets[str(email)]
 
     return ""
 
@@ -89,7 +90,7 @@ def sign_up():
 # Authenticates the username by the provided password
 @app.route('/signin', methods=['POST'])
 def sign_in():
-    print "SOMEONE JUST SIGNED IN"
+    #print "SOMEONE JUST SIGNED IN"
     email = request.form['emailLog']
     password = request.form['passwordLog']
     signin = database_helper.sign_in_db(email, password)
@@ -97,21 +98,17 @@ def sign_in():
     if signin:
         token = create_token()
 
-        if database_helper.get_logged_in(token):
-            return json.dumps({'success': False, 'message': "Already logged in"})
-
-        elif database_helper.get_logged_in_by_mail(email):
+        if database_helper.get_logged_in_by_mail(email):
             if email in sockets:
                 # Removing the other token if the user signs in again
-                print "This happened"
                 try:
-                    ws = sockets[email]
+                    ws = sockets[str(email)]
                     ws.send(json.dumps({'success': False, 'message': "You've been logged out !"}))
                 except WebSocketError as err:
                     repr(err)
                     print("WebSocketError !")
                     #The socket is closed already
-                    del sockets[email]
+                    del sockets[str(email)]
                 except Exception, err:
                     print err
             database_helper.remove_logged_in_by_mail(email)

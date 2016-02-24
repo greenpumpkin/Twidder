@@ -89,23 +89,17 @@ logIn = function() {
 logOut = function() {
 	var token = localStorage.getItem("token");
 	var params = "token="+token;
-	if (token != null) {
-		var xmlhttp = new XMLHttpRequest();
-		xmlhttp.onreadystatechange = function () {
-			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-				var rep = JSON.parse(xmlhttp.responseText);
-				if (rep.success == true) {
-					localStorage.removeItem("token");
-                    localStorage.removeItem("email");
-					//to display the welcome page after the user signs out
-					displayView("welcomeview");
-				}
-			}
-		};
-		xmlhttp.open("POST", "/signout", true);
-		xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xmlhttp.send(params);
-	}
+    var xmlhttp = new XMLHttpRequest();
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("email");
+	//to display the welcome page after the user signs out
+    displayView("welcomeview");
+
+
+	xmlhttp.open("POST", "/signout", true);
+	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xmlhttp.send(params);
 };
 
 signUp = function() {
