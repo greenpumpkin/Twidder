@@ -111,11 +111,15 @@ def remove_logged_in(token):
 
 # Removes a user from the loggedIn table in the database
 def remove_logged_in_by_mail(email):
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('DELETE FROM loggedIn WHERE email=?', (email,))
-    db.commit()
-    close_db()
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('DELETE FROM loggedIn WHERE email=?', (email,))
+        db.commit()
+        #close_db()
+    except Exception, err:
+        print cursor
+        print err
 
 
 # Modify the password in the database

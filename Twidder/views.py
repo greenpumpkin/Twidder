@@ -26,12 +26,13 @@ def start():
 
 @app.route('/socketconnect')
 def connect_socket():
+    print "- SOMEONE JUST TRIED TO CONNECT"
     if request.environ.get('wsgi.websocket'):
         ws = request.environ['wsgi.websocket']
         rcv = ws.receive()
         data = json.loads(rcv)
         email = data['email']
-
+        print "- DATA IS %s" % data
         if not database_helper.get_logged_in(data['token']):
             ws.send(json.dumps({"success": False, "message": "Token not in the database !"}))
 
@@ -88,6 +89,7 @@ def sign_up():
 # Authenticates the username by the provided password
 @app.route('/signin', methods=['POST'])
 def sign_in():
+    print "SOMEONE JUST SIGNED IN"
     email = request.form['emailLog']
     password = request.form['passwordLog']
     signin = database_helper.sign_in_db(email, password)
@@ -101,6 +103,7 @@ def sign_in():
         elif database_helper.get_logged_in_by_mail(email):
             if email in sockets:
                 # Removing the other token if the user signs in again
+                print "This happened"
                 try:
                     ws = sockets[email]
                     ws.send(json.dumps({'success': False, 'message': "You've been logged out !"}))
@@ -109,6 +112,8 @@ def sign_in():
                     print("WebSocketError !")
                     #The socket is closed already
                     del sockets[email]
+                except Exception, err:
+                    print err
             database_helper.remove_logged_in_by_mail(email)
 
         database_helper.add_logged_in(token, email)
