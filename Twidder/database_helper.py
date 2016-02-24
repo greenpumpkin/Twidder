@@ -59,7 +59,6 @@ def add_logged_in(token, email):
     db.commit()
     close_db()
 
-
 # Get a user who is logged in
 def get_logged_in(token):
     db = get_db()
@@ -70,6 +69,15 @@ def get_logged_in(token):
     except sqlite3.Error:
         return False
 
+# Get a user who is logged in
+def get_logged_in_by_mail(email):
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        request = cursor.execute('SELECT * FROM loggedIn WHERE email=?', (email,))
+        return request.fetchone()
+    except sqlite3.Error:
+        return False
 
 # Checks if a password is valid for a user willing to change it
 def check_pwd(email, password):
@@ -98,6 +106,14 @@ def remove_logged_in(token):
     db = get_db()
     cursor = db.cursor()
     cursor.execute('DELETE FROM loggedIn WHERE token=?', (token,))
+    db.commit()
+    close_db()
+
+# Removes a user from the loggedIn table in the database
+def remove_logged_in_by_mail(email):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('DELETE FROM loggedIn WHERE email=?', (email,))
     db.commit()
     close_db()
 

@@ -1,4 +1,4 @@
-from Twidder import app
+from . import app
 from flask import request, render_template
 import re
 import database_helper
@@ -6,7 +6,8 @@ import random
 import json
 from geventwebsocket import WebSocketServer, WebSocketError
 
-sockets = {}
+sockets = dict()
+
 
 @app.before_request
 def before_request():
@@ -22,25 +23,43 @@ def teardown_request(exception):
 def start():
     return render_template('client.html')
 
+
 @app.route('/socketconnect')
 def connect_socket():
-    if request.environ.get("wsgi.websocket"):
-        ws = request.environ["wsgi.websocket"]
+    if request.environ.get('wsgi.websocket'):
+        ws = request.environ['wsgi.websocket']
+        rcv = ws.receive()
+        data = json.loads(rcv)
+        email = data['email']
 
-        while True:
-            data = json.loads(ws.receive())
+        if not database_helper.get_logged_in(data['token']):
+            ws.send(json.dumps({"success": False, "message": "Token not in the database !"}))
 
-            if (data["action"] == "signin"):
-                email = database_helper.get_email_by_token(data["token"])
-                if (email is not None):
-                    if email in sockets:
-                        socket = sockets[email]
-                        try:
-                            socket.send(json.dumps({"action": "signout"}))
-                        except WebSocketError as err:
-                            print(str(err))
-                    sockets[email] = ws
-    return
+        try:
+            #If the user's email is in the sockets dict already
+            if email in sockets:
+                print email + " has an active socket already"
+
+            #We save the active websocket for the logged in user
+            print "Saving the socket for the user : " + str(email)
+            sockets[email] = ws
+
+            # We listen on the socket and keep it active
+            while True:
+                rcv = ws.receive()
+                if rcv == None:
+                    del sockets[email]
+                    ws.close()
+                    print "Socket closed for the user : " + str(email)
+                    return ""
+
+        except WebSocketError as err:
+            repr(err)
+            print("WebSocketError !")
+            del sockets[email]
+
+    return ""
+
 
 @app.route('/signup', methods=['POST'])
 def sign_up():
@@ -54,9 +73,9 @@ def sign_up():
     country = request.form['country']
 
     if (check_email(email) == True) and len(password) >= 6 \
-            and (check_gender(gender))\
-            and len(firstname) > 0 and len(familyname) > 0\
-            and len(city) > 0 and len(country) >0:
+            and (check_gender(gender)) \
+            and len(firstname) > 0 and len(familyname) > 0 \
+            and len(city) > 0 and len(country) > 0:
         signUp = database_helper.insert_user(email, password, firstname, familyname, gender, city, country)
         if signUp:
             return json.dumps({"success": True, "message": "Successfully created a new user."})
@@ -64,6 +83,7 @@ def sign_up():
             return json.dumps({"success": False, "message": "Form data missing or incorrect type."})
     else:
         return json.dumps({"success": False, "message": "Form data missing or incorrect type."})
+
 
 # Authenticates the username by the provided password
 @app.route('/signin', methods=['POST'])
@@ -74,9 +94,26 @@ def sign_in():
 
     if signin:
         token = create_token()
+
+        if database_helper.get_logged_in(token):
+            return json.dumps({'success': False, 'message': "Already logged in"})
+
+        elif database_helper.get_logged_in_by_mail(email):
+            if email in sockets:
+                # Removing the other token if the user signs in again
+                try:
+                    ws = sockets[email]
+                    ws.send(json.dumps({'success': False, 'message': "You've been logged out !"}))
+                except WebSocketError as err:
+                    repr(err)
+                    print("WebSocketError !")
+                    #The socket is closed already
+                    del sockets[email]
+            database_helper.remove_logged_in_by_mail(email)
+
         database_helper.add_logged_in(token, email)
-        sockets[-1] = email
-        return json.dumps({'success': True, 'message': "Login successful!", 'token': token})
+        return json.dumps({'success': True, 'message': "Login successful!", 'token': token, 'email': email})
+
     else:
         return json.dumps({'success': False, 'message': "Wrong email or password"})
 
@@ -89,11 +126,13 @@ def create_token():
         token += ab[random.randint(0, len(ab) - 1)]
     return token
 
-#Checks if an email address is valid
+
+# Checks if an email address is valid
 def check_email(email):
-    if re.match(r"[^@]+@[^@]+\.[^@]+",email):
+    if re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return True
     return False
+
 
 #Checks if the gender is valid
 def check_gender(gender):
@@ -171,6 +210,7 @@ def post_message():
     else:
         return json.dumps({"success": False, "message": "You are not signed in."})
 
+
 # Retrieves the stored messages for the user whom the passed token is issued for.
 # The currently signed-in user case use this method to retrieve all its own messages from the server.
 @app.route('/getusermessagesbytoken/<token>', methods=['GET'])
@@ -178,17 +218,18 @@ def get_user_messages_by_token(token):
     if database_helper.get_logged_in(token):
         data = database_helper.get_user_messages_by_token_db(token)
         if data is not None:
-            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data })
+            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data})
         return json.dumps({"success": False, "message": "No such user."})
     return json.dumps({"success": False, "message": "You are not signed in."})
 
+
 # Retrieves the stored messages for the user specified by the passed email address
 @app.route('/getusermessagesbyemail/<token>/<email>', methods=['GET'])
-def get_user_messages_by_email(token,email):
+def get_user_messages_by_email(token, email):
     if database_helper.get_logged_in(token):
         if (database_helper.in_users(email)):
             data = database_helper.get_user_messages_by_email_db(email)
-            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data })
+            return json.dumps({"success": True, "message": "User messages retrieved.", "data": data})
         return json.dumps({"success": False, "message": "No such user."})
     else:
         return json.dumps({"success": False, "message": "You are not signed in."})

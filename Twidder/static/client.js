@@ -7,41 +7,51 @@
 var sizeMinPwd = 6;
 var maxSizeMsg = 300;
 
-displayView = function() {
+
+displayView = function(view) {
 	if (localStorage.getItem("token") == null) {
-		document.getElementById("page").innerHTML = document.getElementById("welcomeview").innerHTML;
+		document.getElementById("page").innerHTML = document.getElementById(view).innerHTML;
 	} else {
 		document.getElementById("page").innerHTML = document.getElementById("profileview").innerHTML;
-	}
-};
-
-window.onload = function() {
-	displayView();
-	if (localStorage.getItem("token") != null) {
-		displayInfo();
+        displayInfo();
 		keepMsg("mess");
 	}
 };
 
-var ws = new WebSocket("wss://localhost:5000/socketconnect");
-
-ws.onopen = function() {
-    ws.send(JSON.stringify({action: "message", message: "CONNECTED"}));
-    console.log("CONNECTION TO SERVER : OK");
+window.onload = function() {
+	displayView("welcomeview");
 };
 
-ws.onmessage = function(event) {
-    var data = JSON.parse(event.data);
-    console.log(data);
+connectSocket = function() {
+    var ws = new WebSocket("ws://" + document.domain + ":5000/socketconnect");
 
-    if (data["action"] == "signout") {
-        delete sessionStorage.token;
-        loadView();
-    }
-};
+    ws.onopen = function() {
+		console.log("CONNECTION TO SERVER : ESTABLISHED.");
+		var data = {"email" : localStorage.getItem("email"),"token" : localStorage.getItem("token")};
+		ws.send(JSON.stringify(data));
+		console.log(JSON.stringify(data));
+	};
 
-ws.onclose = function() {
-    console.log("CONNECTION TO SERVER : FINISHED.");
+	ws.onmessage = function(msg) {
+		console.log(msg.data);
+		message = JSON.parse(msg.data);
+		if (message.success == false) {
+			console.log("You are already logged in, in another browser");
+            logOut();
+		}
+	};
+
+    ws.onbeforeunload = function() {
+        ws.close();
+    };
+
+	ws.onclose = function() {
+		console.log("CONNECTION TO SERVER : FINISHED.");
+	};
+
+	ws.onerror = function() {
+		console.log("ERROR");
+	};
 };
 
 /********************** Login, Sign up, Log out **********************/
@@ -59,9 +69,13 @@ logIn = function() {
 				var rep = JSON.parse(xmlhttp.responseText);
 
 				if (rep.success == true) {
-					localStorage.setItem("token", rep.token);
-					location.reload();
-				} else {
+
+                    localStorage.setItem("token", rep.token);
+                    localStorage.setItem("email", rep.email);
+                    displayView("profileview");
+                    connectSocket();
+				}
+                else {
 					displayMsg(rep.message, false, "welcomeview");
 				}
 			}
@@ -82,8 +96,9 @@ logOut = function() {
 				var rep = JSON.parse(xmlhttp.responseText);
 				if (rep.success == true) {
 					localStorage.removeItem("token");
+                    localStorage.removeItem("email");
 					//to display the welcome page after the user signs out
-					location.reload();
+					displayView("welcomeview");
 				}
 			}
 		};
