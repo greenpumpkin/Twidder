@@ -82,7 +82,7 @@
 
 				    		
 					    		<p id="postTitle">Post a message to your own wall :</p>    		
-								<textarea id="mess" rows="4" cols="54"></textarea>
+								<textarea id="mess" rows="4" cols="54" ondrop="drop(event)" ondragover="allowDrop(event)" required></textarea>
 								<input id="postButton" type="submit" value="Post!" onClick="msgOnWall('mess')">
 							
 
