@@ -12,7 +12,6 @@
     	
     	<script src="client.js" type="text/javascript"></script>
 
-
     	<script id="welcomeview" type="text/view">
     		<div id="mainContent">
 
@@ -83,7 +82,7 @@
 
 				    		
 					    		<p id="postTitle">Post a message to your own wall :</p>    		
-								<textarea id="mess" rows="4" cols="54"></textarea>
+								<textarea id="mess" rows="4" cols="54" ondrop="drop(event)" ondragover="allowDrop(event)" required></textarea>
 								<input id="postButton" type="submit" value="Post!" onClick="msgOnWall('mess')">
 							
 
@@ -112,7 +111,7 @@
 				    		<p id="countryUser">Country: <span id="country-span-o"></span></p>
 
 				    		<p id="postTitle">Post a message to the wall :</p>    		
-								<textarea id="messUser" rows="4" cols="54"></textarea>
+								<textarea id="messUser" rows="4" cols="54" ></textarea>
 								<input id="postButton" type="submit" value="Post!" onClick="msgOnWall('messUser')">
 
 				    	</div>

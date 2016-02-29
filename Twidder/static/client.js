@@ -342,6 +342,11 @@ keepMsg = function(to) {
 						var para = document.createElement("p");
 						var msg = document.createTextNode("'"+rep.data[j][0]+"' written by : "+rep.data[j][1]);
 						para.appendChild(msg);
+						if (to == "mess") {
+                            para.setAttribute("ondragstart", "drag(event)");
+							para.setAttribute("draggable", "true");
+                            para.setAttribute("id","drag"+j);
+                        }
 						wall.appendChild(para);
 					}
 				} else {
@@ -426,4 +431,19 @@ displayMsgSign = function(message,success) {
 		errFrame.style.display = "none";
 	}, '3000');
 
+};
+
+/********************** Drag and drop functionality **********************/
+drag = function(ev) {
+	ev.dataTransfer.setData("text", ev.target.id);
+}
+
+drop = function(ev) {
+	ev.preventDefault();
+	var data = ev.dataTransfer.getData("text");
+	ev.target.value = document.getElementById(data).innerHTML;
+}
+
+allowDrop = function(ev){
+	ev.preventDefault();
 };
